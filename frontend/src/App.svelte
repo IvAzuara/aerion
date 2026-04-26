@@ -601,7 +601,7 @@
     }
   }
 
-  function handleMouseUp() {
+  function handleMouseUp(e: MouseEvent) {
     // Save pane widths if we were resizing
     if (isResizingSidebar || isResizingList) {
       saveUIState({ sidebarWidth, listWidth })

@@ -1055,6 +1055,7 @@
     "startTime": "Start Time",
     "endTime": "End Time",
     "allDay": "All Day",
+    "calendar": "Calendar",
     "saveEvent": "Save Event",
     "deleteEvent": "Delete Event",
     "shared": "Synced",

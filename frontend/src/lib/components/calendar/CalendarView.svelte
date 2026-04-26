@@ -7,6 +7,8 @@
   import { navigationStore } from '$lib/stores/navigation.svelte'
   import { accountStore } from '$lib/stores/accounts.svelte'
   import EventDetailsDialog from './EventDetailsDialog.svelte'
+  import DayView from './DayView.svelte'
+  import EventDialog from './EventDialog.svelte'
   // @ts-ignore - wailsjs
   import { GetCalendars, GetCalendarEvents, SyncCalendars, DeleteCalendarEvent, SetCalendarEnabled, SetCalendarsEnabled } from '../../../../wailsjs/go/app/App'
   // @ts-ignore - wailsjs models
@@ -20,10 +22,16 @@
   let enabledCalendars = $state<Record<string, boolean>>({})
   let expandedSections = $state<Record<string, boolean>>({ 'shared': true, 'accounts_root': true })
 
+  // View state
+  let viewMode = $state<'month' | 'day'>('month')
+  let selectedDate = $state<Date>(new Date())
+
   // Dialog state
   let showDetails = $state(false)
   let selectedEvent = $state<calendar.Event | null>(null)
   let showDeleteConfirm = $state(false)
+  let showEventDialog = $state(false)
+  let eventDialogInitialDate = $state<Date | undefined>(undefined)
 
   // Group calendars by account for the sidebar
   const groupedCalendars = $derived(() => {
@@ -129,6 +137,20 @@
     } catch (err) {
       console.error('Failed to delete event:', err)
     }
+  }
+
+  function openNewEvent(date?: Date) {
+    eventDialogInitialDate = date
+    showEventDialog = true
+  }
+
+  function openDayView(day: Date) {
+    selectedDate = day
+    viewMode = 'day'
+  }
+
+  function closeDayView() {
+    viewMode = 'month'
   }
 
   async function loadData() {
@@ -243,6 +265,10 @@
     </div>
     
     <div class="flex items-center gap-2">
+      <Button variant="outline" size="sm" onclick={() => openNewEvent()} disabled={loading}>
+        <Icon icon="mdi:plus" class="w-4 h-4 mr-2" />
+        {$_('calendar.newEvent') || 'New Event'}
+      </Button>
       <Button variant="outline" size="sm" onclick={handleSync} disabled={loading}>
         <Icon icon="mdi:sync" class="w-4 h-4 mr-2 {loading ? 'animate-spin' : ''}" />
         {$_('common.sync')}
@@ -436,57 +462,76 @@
         </div>
       {/if}
       
-      <!-- Day Names -->
-      <div class="grid grid-cols-7 border-b border-border bg-muted/30">
-        {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
-          <div class="py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {day}
-          </div>
-        {/each}
-      </div>
-
-      <!-- Days Grid -->
-      <div class="flex-1 grid grid-cols-7 grid-rows-6 overflow-auto bg-background">
-        {#each days as day}
-          <div 
-            class="min-h-[100px] border-r border-b border-border p-2 cursor-pointer hover:bg-muted/5 transition-colors {isSameMonth(day, currentMonth) ? '' : 'bg-muted/10'}"
-          >
-            <div class="flex justify-between items-start mb-1">
-              <span class="text-sm font-medium {isSameDay(day, new Date()) ? 'bg-primary text-primary-foreground w-6 h-6 flex items-center justify-center rounded-full' : 'text-muted-foreground'}">
-                {format(day, 'd')}
-              </span>
+      {#if viewMode === 'month'}
+        <!-- Day Names -->
+        <div class="grid grid-cols-7 border-b border-border bg-muted/30">
+          {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
+            <div class="py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              {day}
             </div>
-            
-            <div class="space-y-1">
-              {#each getEventsForDay(day) as event}
+          {/each}
+        </div>
+
+        <!-- Days Grid -->
+        <div class="flex-1 grid grid-cols-7 grid-rows-6 overflow-auto bg-background">
+          {#each days as day}
+            <div 
+              class="min-h-[100px] border-r border-b border-border p-2 cursor-pointer hover:bg-muted/5 transition-colors {isSameMonth(day, currentMonth) ? '' : 'bg-muted/10'} group/day"
+              onclick={() => openDayView(day)}
+            >
+              <div class="flex justify-between items-start mb-1">
+                <span class="text-sm font-medium {isSameDay(day, new Date()) ? 'bg-primary text-primary-foreground w-6 h-6 flex items-center justify-center rounded-full' : 'text-muted-foreground'}">
+                  {format(day, 'd')}
+                </span>
                 <button 
-                  class="w-full text-left px-2 py-0.5 text-[10px] sm:text-xs rounded border truncate hover:brightness-95 transition-all flex items-center gap-1"
-                  style="background-color: {calendars.find(c => c.id === event.calendarId)?.color || '#3b82f6'}22; border-color: {calendars.find(c => c.id === event.calendarId)?.color || '#3b82f6'}"
-                  onclick={(e) => { e.stopPropagation(); openEvent(event) }}
-                  title={event.summary}
+                  class="p-1 rounded hover:bg-primary/10 text-primary opacity-0 group-hover/day:opacity-100 transition-opacity"
+                  onclick={(e) => { e.stopPropagation(); openNewEvent(day) }}
+                  title="New Event"
                 >
-                  {#if !event.isAllDay}
-                    <span class="font-bold opacity-70 whitespace-nowrap">{format(new Date(event.startTime), 'HH:mm')}</span>
-                  {/if}
-                  <span class="truncate flex-1">{event.summary || $_('calendar.noSubject')}</span>
-                  
-                  {#if event.accountColors && event.accountColors.length > 1}
-                    <div class="flex -space-x-1 ml-1">
-                      {#each event.accountColors as color}
-                        <div class="w-1.5 h-1.5 rounded-full border-[0.5px] border-background" style="background-color: {color}"></div>
-                      {/each}
-                    </div>
-                  {/if}
-
-                  {#if event.meetLink}
-                    <Icon icon="mdi:video" class="w-3 h-3 ml-auto opacity-70" />
-                  {/if}
+                  <Icon icon="mdi:plus" class="w-4 h-4" />
                 </button>
-              {/each}
+              </div>
+              
+              <div class="space-y-1">
+                {#each getEventsForDay(day) as event}
+                  <button 
+                    class="w-full text-left px-2 py-0.5 text-[10px] sm:text-xs rounded border truncate hover:brightness-95 transition-all flex items-center gap-1"
+                    style="background-color: {calendars.find(c => c.id === event.calendarId)?.color || '#3b82f6'}22; border-color: {calendars.find(c => c.id === event.calendarId)?.color || '#3b82f6'}"
+                    onclick={(e) => { e.stopPropagation(); openEvent(event) }}
+                    title={event.summary}
+                  >
+                    {#if !event.isAllDay}
+                      <span class="font-bold opacity-70 whitespace-nowrap">{format(new Date(event.startTime), 'HH:mm')}</span>
+                    {/if}
+                    <span class="truncate flex-1">{event.summary || $_('calendar.noSubject')}</span>
+                    
+                    {#if event.accountColors && event.accountColors.length > 1}
+                      <div class="flex -space-x-1 ml-1">
+                        {#each event.accountColors as color}
+                          <div class="w-1.5 h-1.5 rounded-full border-[0.5px] border-background" style="background-color: {color}"></div>
+                        {/each}
+                      </div>
+                    {/if}
+
+                    {#if event.meetLink}
+                      <Icon icon="mdi:video" class="w-3 h-3 ml-auto opacity-70" />
+                    {/if}
+                  </button>
+                {/each}
+              </div>
             </div>
-          </div>
-        {/each}
-      </div>
+          {/each}
+        </div>
+      {:else}
+        <DayView 
+          date={selectedDate} 
+          events={events} 
+          calendars={calendars} 
+          onClose={closeDayView}
+          onOpenEvent={openEvent}
+          onRefresh={loadData}
+        />
+      {/if}
     </div>
   </div>
 </div>
@@ -496,6 +541,13 @@
   event={selectedEvent}
   calendarColor={calendars.find(c => c.id === selectedEvent?.calendarId)?.color}
   onDelete={requestDeleteEvent}
+/>
+
+<EventDialog
+  bind:open={showEventDialog}
+  initialDate={eventDialogInitialDate}
+  calendars={calendars}
+  onSave={loadData}
 />
 
 <AlertDialog.Root bind:open={showDeleteConfirm}>
