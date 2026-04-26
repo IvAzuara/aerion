@@ -102,6 +102,10 @@ export function CreateIdentity(arg1, arg2) {
   return window['go']['app']['App']['CreateIdentity'](arg1, arg2);
 }
 
+export function DeleteCalendarEvent(arg1, arg2) {
+  return window['go']['app']['App']['DeleteCalendarEvent'](arg1, arg2);
+}
+
 export function DeleteContact(arg1) {
   return window['go']['app']['App']['DeleteContact'](arg1);
 }
@@ -216,6 +220,14 @@ export function GetAutoDetectedFolders(arg1) {
 
 export function GetAutostart() {
   return window['go']['app']['App']['GetAutostart']();
+}
+
+export function GetCalendarEvents(arg1, arg2, arg3) {
+  return window['go']['app']['App']['GetCalendarEvents'](arg1, arg2, arg3);
+}
+
+export function GetCalendars() {
+  return window['go']['app']['App']['GetCalendars']();
 }
 
 export function GetComposerFormat() {
@@ -894,6 +906,10 @@ export function SyncAllContactSources() {
   return window['go']['app']['App']['SyncAllContactSources']();
 }
 
+export function SyncCalendars() {
+  return window['go']['app']['App']['SyncCalendars']();
+}
+
 export function SyncContactSource(arg1) {
   return window['go']['app']['App']['SyncContactSource'](arg1);
 }
@@ -956,4 +972,8 @@ export function UpdateIdentity(arg1, arg2) {
 
 export function UpdateLocalFlags(arg1, arg2, arg3) {
   return window['go']['app']['App']['UpdateLocalFlags'](arg1, arg2, arg3);
+}
+
+export function UpsertCalendarEvent(arg1) {
+  return window['go']['app']['App']['UpsertCalendarEvent'](arg1);
 }

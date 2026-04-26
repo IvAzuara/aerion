@@ -12,6 +12,7 @@ import (
 
 	"github.com/hkdb/aerion/internal/account"
 	"github.com/hkdb/aerion/internal/appstate"
+	"github.com/hkdb/aerion/internal/calendar"
 	"github.com/hkdb/aerion/internal/carddav"
 	"github.com/hkdb/aerion/internal/certificate"
 	"github.com/hkdb/aerion/internal/contact"
@@ -200,6 +201,11 @@ type App struct {
 	carddavSyncer    *carddav.Syncer
 	carddavScheduler *carddav.Scheduler
 
+	// Calendar
+	calendarStore  *calendar.Store
+	calendarClient *calendar.GoogleCalendarClient
+	calendarSyncer *calendar.Syncer
+
 	// S/MIME
 	smimeStore     *smime.Store
 	smimeSigner    *smime.Signer
@@ -367,6 +373,18 @@ func (a *App) Startup(ctx context.Context) {
 	a.settingsStore = settings.NewStore(db)
 	a.appStateStore = appstate.NewStore(db.DB)
 	a.imageAllowlistStore = settings.NewImageAllowlistStore(db)
+
+	// Initialize calendar support
+	a.calendarStore = calendar.NewStore(db)
+	a.calendarClient = calendar.NewGoogleCalendarClient()
+	a.calendarSyncer = calendar.NewSyncer(a.calendarStore)
+	a.calendarSyncer.SetAccessTokenGetter(func(accountID string) (string, error) {
+		tokens, err := a.getValidOAuthToken(accountID)
+		if err != nil {
+			return "", err
+		}
+		return tokens.AccessToken, nil
+	})
 
 	// Scale database connection pool based on number of accounts
 	a.updateDBConnectionPool()

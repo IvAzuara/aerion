@@ -22,6 +22,7 @@ func GoogleProvider() ProviderConfig {
 		TokenURL:    "https://oauth2.googleapis.com/token",
 		Scopes: []string{
 			"https://mail.google.com/",                                // Full Gmail access (IMAP/SMTP)
+			"https://www.googleapis.com/auth/calendar",                // Full Google Calendar access
 			"https://www.googleapis.com/auth/contacts.other.readonly", // Other contacts (for autocomplete)
 			"https://www.googleapis.com/auth/contacts.readonly",       // Full contacts read access (for sync)
 			"https://www.googleapis.com/auth/userinfo.email",          // Get user's email address

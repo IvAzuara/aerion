@@ -9,6 +9,7 @@
   import { Button } from '$lib/components/ui/button'
   import { accountStore } from '$lib/stores/accounts.svelte'
   import { contactSourcesStore } from '$lib/stores/contactSources.svelte'
+  import { navigationStore } from '$lib/stores/navigation.svelte'
   import { isAccountExpanded, setAccountExpanded, isUnifiedInboxExpanded, isFolderCollapsed, setFolderCollapsed, getUIState, getUIStateVersion, saveUIState } from '$lib/stores/uiState.svelte'
   import { setFocusedPane } from '$lib/stores/keyboard.svelte'
   import { _ } from '$lib/i18n'
@@ -601,9 +602,9 @@
   </div>
 
   <!-- Footer with Sync Status and Settings -->
-  <div class="p-3 border-t border-border text-xs text-muted-foreground flex items-center justify-between">
+  <div class="p-3 border-t border-border text-xs text-muted-foreground flex items-center gap-2">
     <button
-      class="flex items-center gap-2 hover:text-foreground transition-colors"
+      class="flex-1 flex items-center gap-2 hover:text-foreground transition-colors overflow-hidden"
       onclick={accountStore.isAnySyncing ? cancelSync : syncAllAccounts}
       title={$_(accountStore.isAnySyncing ? 'sidebar.clickToCancel' : 'sidebar.syncAllAccounts')}
     >
@@ -611,18 +612,29 @@
         icon="mdi:sync"
         class="w-4 h-4 {accountStore.isAnySyncing ? 'animate-spin' : ''}"
       />
-      <span>{formatLastSync()}</span>
+      <span class="truncate">{formatLastSync()}</span>
     </button>
-    <button
-      class="p-1 hover:text-foreground hover:bg-muted rounded transition-colors relative"
-      onclick={() => showSettingsDialog = true}
-      title={$_('sidebar.settings')}
-    >
-      <Icon icon="mdi:cog" class="w-4 h-4" />
-      {#if contactSourcesStore.hasErrors}
-        <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-destructive rounded-full border border-background"></span>
-      {/if}
-    </button>
+    
+    <div class="flex items-center gap-1 flex-shrink-0">
+      <button
+        class="p-1 hover:text-foreground hover:bg-muted rounded transition-colors {navigationStore.currentView === 'calendar' ? 'text-primary bg-primary/10' : ''}"
+        onclick={() => navigationStore.setView(navigationStore.currentView === 'calendar' ? 'mail' : 'calendar')}
+        title={$_('sidebar.calendar')}
+      >
+        <Icon icon="mdi:calendar" class="w-4 h-4" />
+      </button>
+
+      <button
+        class="p-1 hover:text-foreground hover:bg-muted rounded transition-colors relative"
+        onclick={() => showSettingsDialog = true}
+        title={$_('sidebar.settings')}
+      >
+        <Icon icon="mdi:cog" class="w-4 h-4" />
+        {#if contactSourcesStore.hasErrors}
+          <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-destructive rounded-full border border-background"></span>
+        {/if}
+      </button>
+    </div>
   </div>
 </div>
 

@@ -705,4 +705,55 @@ var migrations = []Migration{
 		Version: 28,
 		SQL:     `ALTER TABLE accounts ADD COLUMN shared_mailbox_parent_id TEXT DEFAULT NULL;`,
 	},
+	{
+		Version: 29,
+		SQL: `
+			-- Calendars table
+			CREATE TABLE IF NOT EXISTS calendars (
+				id TEXT PRIMARY KEY,
+				account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+				name TEXT NOT NULL,
+				color TEXT NOT NULL DEFAULT '',
+				type TEXT NOT NULL DEFAULT 'google', -- 'google', 'local'
+				enabled INTEGER NOT NULL DEFAULT 1,
+				sync_token TEXT,
+				last_synced_at DATETIME,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);
+			CREATE INDEX IF NOT EXISTS idx_calendars_account ON calendars(account_id);
+
+			-- Calendar events table
+			CREATE TABLE IF NOT EXISTS calendar_events (
+				id TEXT PRIMARY KEY,
+				calendar_id TEXT NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+				remote_id TEXT, -- Google/Microsoft Event ID
+				summary TEXT,
+				description TEXT,
+				location TEXT,
+				start_time DATETIME NOT NULL,
+				end_time DATETIME NOT NULL,
+				is_all_day INTEGER NOT NULL DEFAULT 0,
+				recurrence TEXT, -- RRULE string
+				meet_link TEXT,
+				status TEXT, -- 'confirmed', 'tentative', 'cancelled'
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);
+			CREATE INDEX IF NOT EXISTS idx_calendar_events_calendar ON calendar_events(calendar_id);
+			CREATE INDEX IF NOT EXISTS idx_calendar_events_start ON calendar_events(start_time);
+			CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_remote_id ON calendar_events(calendar_id, remote_id) WHERE remote_id IS NOT NULL;
+
+			-- Event attendees table
+			CREATE TABLE IF NOT EXISTS calendar_attendees (
+				id TEXT PRIMARY KEY,
+				event_id TEXT NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+				email TEXT NOT NULL,
+				name TEXT,
+				status TEXT, -- 'needsAction', 'declined', 'tentative', 'accepted'
+				is_organizer INTEGER NOT NULL DEFAULT 0
+			);
+			CREATE INDEX IF NOT EXISTS idx_calendar_attendees_event ON calendar_attendees(event_id);
+		`,
+	},
 }

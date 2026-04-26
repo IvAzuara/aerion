@@ -6,6 +6,7 @@ import {carddav} from '../models';
 import {message} from '../models';
 import {folder} from '../models';
 import {app} from '../models';
+import {calendar} from '../models';
 import {contact} from '../models';
 import {context} from '../models';
 import {smtp} from '../models';
@@ -67,6 +68,8 @@ export function CopyToFolder(arg1:Array<string>,arg2:string):Promise<void>;
 
 export function CreateIdentity(arg1:string,arg2:account.IdentityConfig):Promise<account.Identity>;
 
+export function DeleteCalendarEvent(arg1:string,arg2:string):Promise<void>;
+
 export function DeleteContact(arg1:string):Promise<void>;
 
 export function DeleteContactSource(arg1:string):Promise<void>;
@@ -124,6 +127,10 @@ export function GetAttachments(arg1:string):Promise<Array<message.Attachment>>;
 export function GetAutoDetectedFolders(arg1:string):Promise<Record<string, string>>;
 
 export function GetAutostart():Promise<boolean>;
+
+export function GetCalendarEvents(arg1:string,arg2:string,arg3:string):Promise<Array<calendar.Event>>;
+
+export function GetCalendars():Promise<Array<calendar.Calendar>>;
 
 export function GetComposerFormat():Promise<string>;
 
@@ -463,6 +470,8 @@ export function SyncAllComplete():Promise<void>;
 
 export function SyncAllContactSources():Promise<void>;
 
+export function SyncCalendars():Promise<void>;
+
 export function SyncContactSource(arg1:string):Promise<void>;
 
 export function SyncFolder(arg1:string,arg2:string):Promise<void>;
@@ -494,3 +503,5 @@ export function UpdateContactSource(arg1:string,arg2:carddav.SourceConfig):Promi
 export function UpdateIdentity(arg1:string,arg2:account.IdentityConfig):Promise<account.Identity>;
 
 export function UpdateLocalFlags(arg1:Array<string>,arg2:any,arg3:any):Promise<void>;
+
+export function UpsertCalendarEvent(arg1:calendar.Event):Promise<calendar.Event>;

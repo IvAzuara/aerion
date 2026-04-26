@@ -34,6 +34,7 @@
     "offline": "Offline",
     "notSynced": "Not synced",
     "synced": "Synced {time}",
+    "calendar": "Calendar",
     "clickToCancel": "Click to cancel sync",
     "syncAllAccounts": "Sync all accounts",
     "syncNow": "Sync Now",
@@ -1036,5 +1037,25 @@
     "noDomains": "No domains in the allowlist. Use \"Always Load > For domain\" in the email viewer to add domains.",
     "removeButton": "Remove from allowlist",
     "removed": "Removed from allowlist"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "today": "Today",
+    "month": "Month",
+    "week": "Week",
+    "day": "Day",
+    "noEvents": "No events today",
+    "noCalendarsFound": "No calendars found",
+    "syncing": "Syncing calendars...",
+    "newEvent": "New Event",
+    "editEvent": "Edit Event",
+    "summary": "Summary",
+    "location": "Location",
+    "description": "Description",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "allDay": "All Day",
+    "saveEvent": "Save Event",
+    "deleteEvent": "Delete Event"
   }
 }

@@ -4,6 +4,8 @@ AGENTS.md
 context
 aerion
 aerion.exe
+GEMINI.md
+.gemini
 
 # Wails build artifacts
 build/bin/

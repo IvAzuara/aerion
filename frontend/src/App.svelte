@@ -28,6 +28,8 @@
     isInputElement
   } from '$lib/stores/keyboard.svelte'
   import { initLayout, getLayoutMode, getResponsiveView, showViewer, hideViewer, showSidebar, hideSidebar, isResponsive } from '$lib/stores/layout.svelte'
+  import { navigationStore } from '$lib/stores/navigation.svelte'
+  import CalendarView from '$lib/components/calendar/CalendarView.svelte'
   // @ts-ignore - wailsjs path
   import { PrepareReply, GetPendingMailto, GetDraft, MarkAsRead, MarkAsUnread, Star, Unstar, Archive, MarkAsSpam, MarkAsNotSpam, Undo, GetTermsAccepted, SetTermsAccepted, RefreshWindowConstraints, AcceptCertificate, GetStartHiddenActive, CloseWindow, QuitApp, OpenComposerWindow } from '../wailsjs/go/app/App.js'
   // @ts-ignore - wailsjs path
@@ -37,10 +39,10 @@
   import { _ } from '$lib/i18n'
 
   // Component refs for keyboard navigation
-  let sidebarRef: Sidebar | null = null
-  let messageListRef: MessageList | null = null
-  let viewerRef: ConversationViewer | null = null
-  let messageListContainerRef: HTMLElement | null = null
+  let sidebarRef = $state<Sidebar | null>(null)
+  let messageListRef = $state<MessageList | null>(null)
+  let viewerRef = $state<ConversationViewer | null>(null)
+  let messageListContainerRef = $state<HTMLElement | null>(null)
 
   // React to theme mode changes from settings store
   $effect(() => {
@@ -328,6 +330,7 @@
     folderName: string,
     folderType: string
   ) {
+    navigationStore.setView('mail')
     selectedAccountId = accountId
     selectedFolderId = folderId
     selectedFolderName = folderName
@@ -358,6 +361,7 @@
     folderName: string,
     folderType: string
   ) {
+    navigationStore.setView('mail')
     selectedAccountId = accountId
     selectedFolderId = folderId
     selectedFolderName = folderName
@@ -382,6 +386,7 @@
 
   // Handle unified inbox selection from sidebar (All Inboxes)
   function handleUnifiedInboxSelect() {
+    navigationStore.setView('mail')
     selectedAccountId = 'unified'
     selectedFolderId = 'inbox'
     selectedFolderName = 'All Inboxes'
@@ -1178,67 +1183,73 @@
     ></button>
     {/if}
 
-    <!-- Message List -->
-    <section
-      bind:this={messageListContainerRef}
-      class="{isResponsive() ? 'flex-1 min-w-0 border-r border-border bg-background' : 'flex-shrink-0 border-r border-border bg-background'}"
-      style="{getLayoutMode() === 'full' ? `width: ${listWidth}px` : ''}"
-      role="presentation"
-      data-pane="messageList"
-      tabindex="-1"
-      onclick={() => handlePaneClick('messageList')}
-    >
-      <MessageList
-        bind:this={messageListRef}
-        accountId={selectedAccountId}
-        folderId={selectedFolderId}
-        folderName={selectedFolderName}
-        folderType={selectedFolderType || 'inbox'}
-        onConversationSelect={handleConversationSelect}
-        onReply={handleReply}
-        onRowActionComplete={() => viewerRef?.refreshFlags()}
-        isFocused={getFocusedPane() === 'messageList'}
-        isFlashing={isPaneFlashing('messageList')}
-        showFolderToggle={getLayoutMode() === 'narrow'}
-        onToggleSidebar={showSidebar}
-      />
-    </section>
+    {#if navigationStore.currentView === 'mail'}
+      <!-- Message List -->
+      <section
+        bind:this={messageListContainerRef}
+        class="{isResponsive() ? 'flex-1 min-w-0 border-r border-border bg-background' : 'flex-shrink-0 border-r border-border bg-background'}"
+        style="{getLayoutMode() === 'full' ? `width: ${listWidth}px` : ''}"
+        role="presentation"
+        data-pane="messageList"
+        tabindex="-1"
+        onclick={() => handlePaneClick('messageList')}
+      >
+        <MessageList
+          bind:this={messageListRef}
+          accountId={selectedAccountId}
+          folderId={selectedFolderId}
+          folderName={selectedFolderName}
+          folderType={selectedFolderType || 'inbox'}
+          onConversationSelect={handleConversationSelect}
+          onReply={handleReply}
+          onRowActionComplete={() => viewerRef?.refreshFlags()}
+          isFocused={getFocusedPane() === 'messageList'}
+          isFlashing={isPaneFlashing('messageList')}
+          showFolderToggle={getLayoutMode() === 'narrow'}
+          onToggleSidebar={showSidebar}
+        />
+      </section>
 
-    <!-- List Resize Handle -->
-    {#if getLayoutMode() === 'full'}
-    <button
-      type="button"
-      class="w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors border-0 p-0 {isResizingList
-        ? 'bg-primary/40'
-        : ''}"
-      onmousedown={startResizeList}
-      aria-label={$_('aria.resizeMessageList')}
-    ></button>
+      <!-- List Resize Handle -->
+      {#if getLayoutMode() === 'full'}
+      <button
+        type="button"
+        class="w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors border-0 p-0 {isResizingList
+          ? 'bg-primary/40'
+          : ''}"
+        onmousedown={startResizeList}
+        aria-label={$_('aria.resizeMessageList')}
+      ></button>
+      {/if}
+
+      <!-- Conversation Viewer -->
+      <main
+        class="{isResponsive() ? `responsive-viewer-overlay bg-background ${getResponsiveView() === 'viewer' ? 'responsive-viewer-visible' : ''}` : 'flex-1 min-w-0 bg-background'}"
+        role="presentation"
+        data-pane="viewer"
+        onclick={() => handlePaneClick('viewer')}
+      >
+        <ConversationViewer
+          bind:this={viewerRef}
+          threadId={selectedThreadId}
+          folderId={selectedConversationFolderId}
+          folderType={selectedFolderType}
+          accountId={selectedConversationAccountId}
+          onReply={handleReply}
+          onComposeToAddress={handleComposeToAddress}
+          onEditDraft={handleEditDraft}
+          onActionComplete={(autoSelectNext) => messageListRef?.handleActionComplete(autoSelectNext)}
+          isFocused={getFocusedPane() === 'viewer'}
+          isFlashing={isPaneFlashing('viewer')}
+          showBackButton={isResponsive()}
+          onBack={hideViewer}
+        />
+      </main>
+    {:else if navigationStore.currentView === 'calendar'}
+      <main class="flex-1 min-w-0 bg-background">
+        <CalendarView />
+      </main>
     {/if}
-
-    <!-- Conversation Viewer -->
-    <main
-      class="{isResponsive() ? `responsive-viewer-overlay bg-background ${getResponsiveView() === 'viewer' ? 'responsive-viewer-visible' : ''}` : 'flex-1 min-w-0 bg-background'}"
-      role="presentation"
-      data-pane="viewer"
-      onclick={() => handlePaneClick('viewer')}
-    >
-      <ConversationViewer
-        bind:this={viewerRef}
-        threadId={selectedThreadId}
-        folderId={selectedConversationFolderId}
-        folderType={selectedFolderType}
-        accountId={selectedConversationAccountId}
-        onReply={handleReply}
-        onComposeToAddress={handleComposeToAddress}
-        onEditDraft={handleEditDraft}
-        onActionComplete={(autoSelectNext) => messageListRef?.handleActionComplete(autoSelectNext)}
-        isFocused={getFocusedPane() === 'viewer'}
-        isFlashing={isPaneFlashing('viewer')}
-        showBackButton={isResponsive()}
-        onBack={hideViewer}
-      />
-    </main>
   </div>
 </div>
 
