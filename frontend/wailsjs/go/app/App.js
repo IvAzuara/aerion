@@ -786,6 +786,14 @@ export function SetAutostart(arg1) {
   return window['go']['app']['App']['SetAutostart'](arg1);
 }
 
+export function SetCalendarEnabled(arg1, arg2) {
+  return window['go']['app']['App']['SetCalendarEnabled'](arg1, arg2);
+}
+
+export function SetCalendarsEnabled(arg1, arg2) {
+  return window['go']['app']['App']['SetCalendarsEnabled'](arg1, arg2);
+}
+
 export function SetComposerFormat(arg1) {
   return window['go']['app']['App']['SetComposerFormat'](arg1);
 }

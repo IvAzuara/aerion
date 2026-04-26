@@ -665,6 +665,8 @@ export namespace calendar {
 	    color: string;
 	    type: string;
 	    enabled: boolean;
+	    isGlobal: boolean;
+	    canonicalId?: string;
 	    syncToken?: string;
 	    // Go type: time
 	    lastSyncedAt?: any;
@@ -685,6 +687,8 @@ export namespace calendar {
 	        this.color = source["color"];
 	        this.type = source["type"];
 	        this.enabled = source["enabled"];
+	        this.isGlobal = source["isGlobal"];
+	        this.canonicalId = source["canonicalId"];
 	        this.syncToken = source["syncToken"];
 	        this.lastSyncedAt = this.convertValues(source["lastSyncedAt"], null);
 	        this.createdAt = this.convertValues(source["createdAt"], null);

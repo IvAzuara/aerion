@@ -12,6 +12,8 @@ type Calendar struct {
 	Color        string    `json:"color"`
 	Type         string    `json:"type"` // 'google', 'local'
 	Enabled      bool      `json:"enabled"`
+	IsGlobal     bool      `json:"isGlobal"`
+	CanonicalID  string    `json:"canonicalId,omitempty"`
 	SyncToken    string    `json:"syncToken,omitempty"`
 	LastSyncedAt time.Time `json:"lastSyncedAt,omitempty"`
 	CreatedAt    time.Time `json:"createdAt"`

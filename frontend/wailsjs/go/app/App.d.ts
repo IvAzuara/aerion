@@ -410,6 +410,10 @@ export function SetAlwaysLoadImages(arg1:boolean):Promise<void>;
 
 export function SetAutostart(arg1:boolean):Promise<void>;
 
+export function SetCalendarEnabled(arg1:string,arg2:boolean):Promise<void>;
+
+export function SetCalendarsEnabled(arg1:Array<string>,arg2:boolean):Promise<void>;
+
 export function SetComposerFormat(arg1:string):Promise<void>;
 
 export function SetComposerMode(arg1:string):Promise<void>;

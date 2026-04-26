@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hkdb/aerion/internal/account"
@@ -17,12 +18,29 @@ func (a *App) GetCalendars() ([]*calendar.Calendar, error) {
 	}
 
 	var allCalendars []*calendar.Calendar
+
 	for _, acc := range accounts {
 		calendars, err := a.calendarStore.ListCalendars(acc.ID)
 		if err != nil {
 			continue
 		}
-		allCalendars = append(allCalendars, calendars...)
+		
+		for _, cal := range calendars {
+			// Mark global Google calendars
+			if cal.Type == "google" && strings.HasSuffix(cal.ID, "@group.v.calendar.google.com") {
+				cal.IsGlobal = true
+				
+				// Extract canonical ID
+				parts := strings.Split(cal.ID, "@")
+				canonicalID := parts[0]
+				if dotIdx := strings.LastIndex(canonicalID, "."); dotIdx != -1 {
+					canonicalID = canonicalID[dotIdx+1:]
+				}
+				cal.CanonicalID = canonicalID
+			}
+			
+			allCalendars = append(allCalendars, cal)
+		}
 	}
 	return allCalendars, nil
 }
@@ -128,5 +146,56 @@ func (a *App) SyncCalendars() error {
 		log.Warn().Msg("No accounts found for calendar sync")
 	}
 
+	return nil
+}
+
+// SetCalendarEnabled updates the enabled state of a calendar
+func (a *App) SetCalendarEnabled(calendarID string, enabled bool) error {
+	log := logging.WithComponent("app")
+	cal, err := a.calendarStore.GetCalendar(calendarID)
+	if err != nil {
+		return err
+	}
+	if cal == nil {
+		return fmt.Errorf("calendar not found")
+	}
+
+	cal.Enabled = enabled
+	if err := a.calendarStore.UpsertCalendar(cal); err != nil {
+		return err
+	}
+
+	log.Info().Str("id", calendarID).Bool("enabled", enabled).Msg("Calendar enabled state updated")
+	
+	// If enabled, trigger a sync for this calendar
+	if enabled {
+		go a.calendarSyncer.SyncCalendarEvents(cal.AccountID, cal.ID)
+	}
+	
+	return nil
+}
+
+// SetCalendarsEnabled updates the enabled state for multiple calendars
+func (a *App) SetCalendarsEnabled(calendarIDs []string, enabled bool) error {
+	log := logging.WithComponent("app")
+	for _, id := range calendarIDs {
+		cal, err := a.calendarStore.GetCalendar(id)
+		if err != nil {
+			log.Error().Err(err).Str("id", id).Msg("Failed to get calendar for status update")
+			continue
+		}
+		if cal != nil {
+			cal.Enabled = enabled
+			if err := a.calendarStore.UpsertCalendar(cal); err != nil {
+				log.Error().Err(err).Str("id", id).Msg("Failed to update calendar enabled state")
+				continue
+			}
+			
+			// If enabled, trigger a sync for this calendar
+			if enabled {
+				go a.calendarSyncer.SyncCalendarEvents(cal.AccountID, cal.ID)
+			}
+		}
+	}
 	return nil
 }
