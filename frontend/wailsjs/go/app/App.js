@@ -970,6 +970,10 @@ export function UpdateAccount(arg1, arg2) {
   return window['go']['app']['App']['UpdateAccount'](arg1, arg2);
 }
 
+export function UpdateCalendarEvent(arg1) {
+  return window['go']['app']['App']['UpdateCalendarEvent'](arg1);
+}
+
 export function UpdateContactSource(arg1, arg2) {
   return window['go']['app']['App']['UpdateContactSource'](arg1, arg2);
 }

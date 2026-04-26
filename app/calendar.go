@@ -63,7 +63,11 @@ func (a *App) GetCalendarEvents(calendarID string, startStr, endStr string) ([]*
 // UpsertCalendarEvent creates or updates a calendar event
 func (a *App) UpsertCalendarEvent(event calendar.Event) (*calendar.Event, error) {
 	log := logging.WithComponent("app")
-	
+
+	if event.RemoteID != "" {
+		return a.UpdateCalendarEvent(event)
+	}
+
 	// If it's a Google event, we should ideally sync it to Google too
 	cal, err := a.calendarStore.GetCalendar(event.CalendarID)
 	if err != nil {
@@ -76,18 +80,11 @@ func (a *App) UpsertCalendarEvent(event calendar.Event) (*calendar.Event, error)
 			return nil, fmt.Errorf("failed to get oauth token: %w", err)
 		}
 
-		// TODO: Implement Update in google client, for now we only have Create
-		// For simplicity in this MVP, let's just save locally and trigger a sync later
-		// or implement the create/update logic here.
-		if event.RemoteID == "" {
-			created, err := a.calendarClient.CreateEvent(accessToken.AccessToken, cal.ID, &event)
-			if err != nil {
-				return nil, fmt.Errorf("google api error: %w", err)
-			}
-			event = *created
-		} else {
-			// Update logic would go here
+		created, err := a.calendarClient.CreateEvent(accessToken.AccessToken, cal.ID, &event)
+		if err != nil {
+			return nil, fmt.Errorf("google api error: %w", err)
 		}
+		event = *created
 	}
 
 	if err := a.calendarStore.UpsertEvent(&event); err != nil {
@@ -95,6 +92,36 @@ func (a *App) UpsertCalendarEvent(event calendar.Event) (*calendar.Event, error)
 	}
 
 	log.Info().Str("id", event.ID).Str("summary", event.Summary).Msg("Calendar event saved")
+	return &event, nil
+}
+
+// UpdateCalendarEvent updates an existing calendar event
+func (a *App) UpdateCalendarEvent(event calendar.Event) (*calendar.Event, error) {
+	log := logging.WithComponent("app")
+
+	cal, err := a.calendarStore.GetCalendar(event.CalendarID)
+	if err != nil {
+		return nil, err
+	}
+
+	if cal != nil && cal.Type == "google" && event.RemoteID != "" {
+		accessToken, err := a.getValidOAuthToken(cal.AccountID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get oauth token: %w", err)
+		}
+
+		updated, err := a.calendarClient.UpdateEvent(accessToken.AccessToken, cal.ID, event.RemoteID, &event)
+		if err != nil {
+			return nil, fmt.Errorf("google api error: %w", err)
+		}
+		event = *updated
+	}
+
+	if err := a.calendarStore.UpsertEvent(&event); err != nil {
+		return nil, err
+	}
+
+	log.Info().Str("id", event.ID).Str("summary", event.Summary).Msg("Calendar event updated")
 	return &event, nil
 }
 

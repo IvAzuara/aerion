@@ -573,6 +573,12 @@
     composerInitialMessage = null
   }
 
+  // Handle calendar toggle from sidebar
+  function handleCalendarToggle() {
+    navigationStore.setView(navigationStore.currentView === 'calendar' ? 'mail' : 'calendar')
+    hideSidebar()
+  }
+
   // Pane sizing state
   let sidebarWidth = $state(240)
   let listWidth = $state(420)
@@ -1138,7 +1144,7 @@
   <div class="flex flex-1 min-h-0 overflow-hidden relative">
     <!-- Sidebar (Folder List) -->
     <aside
-      class="{getLayoutMode() === 'narrow' ? `responsive-sidebar-overlay w-72 border-r border-border bg-background ${getResponsiveView() === 'sidebar' ? 'responsive-sidebar-visible' : ''}` : 'flex-shrink-0 border-r border-border bg-muted/30'}"
+      class="{(getLayoutMode() === 'narrow' && (navigationStore.currentView === 'mail' || navigationStore.currentView === 'calendar')) ? `responsive-sidebar-overlay w-72 border-r border-border bg-background ${getResponsiveView() === 'sidebar' ? 'responsive-sidebar-visible' : ''}` : 'flex-shrink-0 border-r border-border bg-muted/30'}"
       style="{getLayoutMode() === 'full' ? `width: ${sidebarWidth}px` : ''}"
       role="presentation"
       onclick={() => handlePaneClick('sidebar')}
@@ -1156,6 +1162,7 @@
         isFlashing={isPaneFlashing('sidebar')}
         showBackButton={getLayoutMode() === 'narrow'}
         onBack={hideSidebar}
+        onCalendarToggle={handleCalendarToggle}
       />
     </aside>
 

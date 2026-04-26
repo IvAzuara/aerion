@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -41,7 +42,8 @@ func (c *GoogleCalendarClient) ListCalendars(accessToken string) ([]*Calendar, e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("google api error: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
 	}
 
 	var result struct {
@@ -50,6 +52,7 @@ func (c *GoogleCalendarClient) ListCalendars(accessToken string) ([]*Calendar, e
 			Summary         string `json:"summary"`
 			BackgroundColor string `json:"backgroundColor"`
 			Primary         bool   `json:"primary"`
+			AccessRole      string `json:"accessRole"`
 		} `json:"items"`
 	}
 
@@ -64,11 +67,12 @@ func (c *GoogleCalendarClient) ListCalendars(accessToken string) ([]*Calendar, e
 			name += " (Primary)"
 		}
 		calendars[i] = &Calendar{
-			ID:      item.ID,
-			Name:    name,
-			Color:   item.BackgroundColor,
-			Type:    "google",
-			Enabled: true,
+			ID:         item.ID,
+			Name:       name,
+			Color:      item.BackgroundColor,
+			Type:       "google",
+			AccessRole: item.AccessRole,
+			Enabled:    true,
 		}
 	}
 
@@ -97,7 +101,8 @@ func (c *GoogleCalendarClient) ListEvents(accessToken, calendarID string, timeMi
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("google api error: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
 	}
 
 	var result struct {
@@ -136,7 +141,8 @@ func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("google api error: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
 	}
 
 	var createdGE googleEvent
@@ -145,6 +151,38 @@ func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event
 	}
 
 	return createdGE.toModel(calendarID), nil
+}
+
+// UpdateEvent updates an existing event in Google Calendar using PATCH
+func (c *GoogleCalendarClient) UpdateEvent(accessToken, calendarID, remoteID string, event *Event) (*Event, error) {
+	ge := fromModel(event)
+	body, _ := json.Marshal(ge)
+
+	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events/%s", url.PathEscape(calendarID), url.PathEscape(remoteID))
+	req, err := http.NewRequest("PATCH", u, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var updatedGE googleEvent
+	if err := json.NewDecoder(resp.Body).Decode(&updatedGE); err != nil {
+		return nil, err
+	}
+
+	return updatedGE.toModel(calendarID), nil
 }
 
 // DeleteEvent removes an event from Google Calendar

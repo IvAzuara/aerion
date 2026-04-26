@@ -21,7 +21,7 @@ func NewStore(db *database.DB) *Store {
 // ListCalendars returns all calendars for an account
 func (s *Store) ListCalendars(accountID string) ([]*Calendar, error) {
 	rows, err := s.db.Query(`
-		SELECT id, account_id, name, color, type, enabled, sync_token, last_synced_at, created_at, updated_at
+		SELECT id, account_id, name, color, type, access_role, enabled, sync_token, last_synced_at, created_at, updated_at
 		FROM calendars
 		WHERE account_id = ?
 		ORDER BY name ASC
@@ -36,7 +36,7 @@ func (s *Store) ListCalendars(accountID string) ([]*Calendar, error) {
 		c := &Calendar{}
 		var lastSyncedAt sql.NullTime
 		if err := rows.Scan(
-			&c.ID, &c.AccountID, &c.Name, &c.Color, &c.Type, &c.Enabled,
+			&c.ID, &c.AccountID, &c.Name, &c.Color, &c.Type, &c.AccessRole, &c.Enabled,
 			&c.SyncToken, &lastSyncedAt, &c.CreatedAt, &c.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -52,11 +52,11 @@ func (s *Store) GetCalendar(id string) (*Calendar, error) {
 	c := &Calendar{}
 	var lastSyncedAt sql.NullTime
 	err := s.db.QueryRow(`
-		SELECT id, account_id, name, color, type, enabled, sync_token, last_synced_at, created_at, updated_at
+		SELECT id, account_id, name, color, type, access_role, enabled, sync_token, last_synced_at, created_at, updated_at
 		FROM calendars
 		WHERE id = ?
 	`, id).Scan(
-		&c.ID, &c.AccountID, &c.Name, &c.Color, &c.Type, &c.Enabled,
+		&c.ID, &c.AccountID, &c.Name, &c.Color, &c.Type, &c.AccessRole, &c.Enabled,
 		&c.SyncToken, &lastSyncedAt, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -81,16 +81,17 @@ func (s *Store) UpsertCalendar(c *Calendar) error {
 	c.UpdatedAt = now
 
 	_, err := s.db.Exec(`
-		INSERT INTO calendars (id, account_id, name, color, type, enabled, sync_token, last_synced_at, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO calendars (id, account_id, name, color, type, access_role, enabled, sync_token, last_synced_at, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			name = excluded.name,
 			color = excluded.color,
+			access_role = excluded.access_role,
 			enabled = excluded.enabled,
 			sync_token = excluded.sync_token,
 			last_synced_at = excluded.last_synced_at,
 			updated_at = excluded.updated_at
-	`, c.ID, c.AccountID, c.Name, c.Color, c.Type, c.Enabled, c.SyncToken, c.LastSyncedAt, c.CreatedAt, c.UpdatedAt)
+	`, c.ID, c.AccountID, c.Name, c.Color, c.Type, c.AccessRole, c.Enabled, c.SyncToken, c.LastSyncedAt, c.CreatedAt, c.UpdatedAt)
 	return err
 }
 

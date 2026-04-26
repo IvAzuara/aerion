@@ -112,6 +112,20 @@
   </div>
 
   <div class="flex-1 overflow-y-auto relative" bind:this={scrollContainer}>
+    <!-- All Day Events Header (Sticky) -->
+    {#if dayEvents().some(e => e.isAllDay)}
+        <div class="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border p-2 space-y-1 ml-16">
+            {#each dayEvents().filter(e => e.isAllDay) as event}
+                <button 
+                    class="w-full text-left px-3 py-1 text-xs rounded border bg-primary/10 border-primary/30 truncate hover:brightness-95 transition-all"
+                    onclick={() => onOpenEvent(event)}
+                >
+                    <span class="font-semibold text-primary">All day:</span> {event.summary}
+                </button>
+            {/each}
+        </div>
+    {/if}
+
     <div class="flex min-h-full">
       <!-- Time Labels -->
       <div class="w-16 flex-shrink-0 border-r border-border bg-muted/5">
@@ -128,20 +142,6 @@
         {#each hours as hour}
           <div class="absolute left-0 right-0 border-b border-border/50 h-[60px]" style="top: {hour * 60}px"></div>
         {/each}
-
-        <!-- All Day Events Header (Simplified for now) -->
-        {#if dayEvents().some(e => e.isAllDay)}
-            <div class="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border p-2 space-y-1">
-                {#each dayEvents().filter(e => e.isAllDay) as event}
-                    <button 
-                        class="w-full text-left px-3 py-1 text-xs rounded border bg-primary/10 border-primary/30 truncate"
-                        onclick={() => onOpenEvent(event)}
-                    >
-                        <span class="font-semibold text-primary">All day:</span> {event.summary}
-                    </button>
-                {/each}
-            </div>
-        {/if}
 
         <!-- Timed Events -->
         <div 

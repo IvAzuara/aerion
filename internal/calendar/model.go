@@ -11,6 +11,7 @@ type Calendar struct {
 	Name         string    `json:"name"`
 	Color        string    `json:"color"`
 	Type         string    `json:"type"` // 'google', 'local'
+	AccessRole   string    `json:"accessRole"` // 'owner', 'writer', 'reader', 'freeBusyReader'
 	Enabled      bool      `json:"enabled"`
 	IsGlobal     bool      `json:"isGlobal"`
 	CanonicalID  string    `json:"canonicalId,omitempty"`

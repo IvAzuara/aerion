@@ -118,6 +118,7 @@
     isFlashing?: boolean
     showBackButton?: boolean
     onBack?: () => void
+    onCalendarToggle?: () => void
   }
 
   let {
@@ -132,6 +133,7 @@
     isFlashing = false,
     showBackButton = false,
     onBack,
+    onCalendarToggle,
   }: Props = $props()
 
   // Unified inbox state
@@ -618,7 +620,14 @@
     <div class="flex items-center gap-1 flex-shrink-0">
       <button
         class="p-1 hover:text-foreground hover:bg-muted rounded transition-colors {navigationStore.currentView === 'calendar' ? 'text-primary bg-primary/10' : ''}"
-        onclick={() => navigationStore.setView(navigationStore.currentView === 'calendar' ? 'mail' : 'calendar')}
+        onclick={() => {
+            if (onCalendarToggle) {
+                onCalendarToggle();
+            } else {
+                navigationStore.setView(navigationStore.currentView === 'calendar' ? 'mail' : 'calendar');
+            }
+            onBack?.();
+        }}
         title={$_('sidebar.calendar')}
       >
         <Icon icon="mdi:calendar" class="w-4 h-4" />

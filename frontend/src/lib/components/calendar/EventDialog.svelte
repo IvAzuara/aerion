@@ -42,6 +42,8 @@
   let calendarId = $state('')
   let saving = $state(false)
 
+  const writableCalendars = $derived(calendars.filter(c => c.accessRole === 'writer' || c.accessRole === 'owner'))
+
   $effect(() => {
     if (open) {
       if (event) {
@@ -64,8 +66,8 @@
         location = ''
         isAllDay = false
         
-        // Default to first enabled calendar
-        const defaultCal = calendars.find(c => c.enabled) || calendars[0]
+        // Default to first enabled calendar that is also writable
+        const defaultCal = writableCalendars.find(c => c.enabled) || writableCalendars[0]
         calendarId = defaultCal?.id || ''
 
         const start = initialDate ? startOfHour(initialDate) : startOfHour(new Date())
@@ -80,7 +82,9 @@
   })
 
   async function handleSave() {
-    if (!summary || !calendarId) return
+    if (!summary || !calendarId) {
+      return
+    }
     
     saving = true
     try {
@@ -93,8 +97,8 @@
         summary,
         description,
         location,
-        startTime: start,
-        endTime: end,
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
         isAllDay,
         status: 'confirmed',
       })
@@ -160,8 +164,8 @@
             {/if}
           </Select.Trigger>
           <Select.Content>
-            {#each calendars as cal}
-              <Select.Item value={cal.id}>
+            {#each writableCalendars as cal}
+              <Select.Item value={cal.id} label={cal.name}>
                 <div class="flex items-center gap-2">
                   <div class="w-3 h-3 rounded-full" style="background-color: {cal.color}"></div>
                   <span>{cal.name}</span>

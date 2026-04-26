@@ -502,6 +502,8 @@ export function UnsubscribeFolder(arg1:string,arg2:string):Promise<void>;
 
 export function UpdateAccount(arg1:string,arg2:account.AccountConfig):Promise<account.Account>;
 
+export function UpdateCalendarEvent(arg1:calendar.Event):Promise<calendar.Event>;
+
 export function UpdateContactSource(arg1:string,arg2:carddav.SourceConfig):Promise<void>;
 
 export function UpdateIdentity(arg1:string,arg2:account.IdentityConfig):Promise<account.Identity>;

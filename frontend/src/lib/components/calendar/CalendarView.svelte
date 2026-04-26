@@ -9,6 +9,7 @@
   import EventDetailsDialog from './EventDetailsDialog.svelte'
   import DayView from './DayView.svelte'
   import EventDialog from './EventDialog.svelte'
+  import { getLayoutMode, showSidebar } from '$lib/stores/layout.svelte'
   // @ts-ignore - wailsjs
   import { GetCalendars, GetCalendarEvents, SyncCalendars, DeleteCalendarEvent, SetCalendarEnabled, SetCalendarsEnabled } from '../../../../wailsjs/go/app/App'
   // @ts-ignore - wailsjs models
@@ -250,6 +251,16 @@
   <!-- Calendar Header -->
   <header class="flex items-center justify-between px-6 py-4 border-b border-border">
     <div class="flex items-center gap-4">
+      {#if getLayoutMode() === 'narrow'}
+        <button
+          class="p-1.5 -ml-1 rounded-md hover:bg-muted transition-colors"
+          title={$_('responsive.folders')}
+          aria-label={$_('aria.toggleSidebar')}
+          onclick={showSidebar}
+        >
+          <Icon icon="mdi:dock-left" class="w-5 h-5 text-muted-foreground" />
+        </button>
+      {/if}
       <h1 class="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h1>
       <div class="flex items-center bg-muted rounded-md p-1">
         <button class="p-1 hover:bg-background rounded transition-colors" onclick={prevMonth}>
@@ -283,6 +294,7 @@
   <!-- Main Calendar View with Sidebar -->
   <div class="flex-1 flex overflow-hidden">
     <!-- Calendar Sidebar (List of calendars) -->
+    {#if getLayoutMode() !== 'narrow'}
     <aside class="w-64 border-r border-border bg-muted/20 overflow-y-auto p-4 flex flex-col gap-6">
       {#if Object.keys(sharedCalendars()).length > 0}
         <div class="space-y-2">
@@ -438,6 +450,7 @@
         {/if}
       </div>
     </aside>
+    {/if}
 
     <!-- Calendar Grid Area -->
     <div class="flex-1 flex flex-col relative overflow-hidden">
@@ -473,13 +486,21 @@
         </div>
 
         <!-- Days Grid -->
-        <div class="flex-1 grid grid-cols-7 grid-rows-6 overflow-auto bg-background">
+        <div class="flex-1 grid grid-cols-7 grid-rows-6 overflow-hidden bg-background">
           {#each days as day}
             <div 
-              class="min-h-[100px] border-r border-b border-border p-2 cursor-pointer hover:bg-muted/5 transition-colors {isSameMonth(day, currentMonth) ? '' : 'bg-muted/10'} group/day"
+              role="button"
+              tabindex="0"
+              class="min-h-0 border-r border-b border-border p-2 cursor-pointer hover:bg-muted/5 transition-colors {isSameMonth(day, currentMonth) ? '' : 'bg-muted/10'} group/day flex flex-col"
               onclick={() => openDayView(day)}
+              onkeydown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  openDayView(day);
+                }
+              }}
             >
-              <div class="flex justify-between items-start mb-1">
+              <div class="flex justify-between items-start mb-1 flex-shrink-0">
                 <span class="text-sm font-medium {isSameDay(day, new Date()) ? 'bg-primary text-primary-foreground w-6 h-6 flex items-center justify-center rounded-full' : 'text-muted-foreground'}">
                   {format(day, 'd')}
                 </span>
@@ -492,7 +513,7 @@
                 </button>
               </div>
               
-              <div class="space-y-1">
+              <div class="flex-1 overflow-y-auto space-y-1 scrollbar-hide">
                 {#each getEventsForDay(day) as event}
                   <button 
                     class="w-full text-left px-2 py-0.5 text-[10px] sm:text-xs rounded border truncate hover:brightness-95 transition-all flex items-center gap-1"
@@ -566,3 +587,13 @@
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>
+
+<style>
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>

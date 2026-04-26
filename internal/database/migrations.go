@@ -715,6 +715,7 @@ var migrations = []Migration{
 				name TEXT NOT NULL,
 				color TEXT NOT NULL DEFAULT '',
 				type TEXT NOT NULL DEFAULT 'google', -- 'google', 'local'
+				access_role TEXT NOT NULL DEFAULT 'reader',
 				enabled INTEGER NOT NULL DEFAULT 1,
 				sync_token TEXT,
 				last_synced_at DATETIME,

@@ -664,6 +664,7 @@ export namespace calendar {
 	    name: string;
 	    color: string;
 	    type: string;
+	    accessRole: string;
 	    enabled: boolean;
 	    isGlobal: boolean;
 	    canonicalId?: string;
@@ -686,6 +687,7 @@ export namespace calendar {
 	        this.name = source["name"];
 	        this.color = source["color"];
 	        this.type = source["type"];
+	        this.accessRole = source["accessRole"];
 	        this.enabled = source["enabled"];
 	        this.isGlobal = source["isGlobal"];
 	        this.canonicalId = source["canonicalId"];
