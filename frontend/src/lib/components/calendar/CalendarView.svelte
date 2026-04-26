@@ -18,7 +18,7 @@
   let currentMonth = $state(new Date())
   let loading = $state(false)
   let enabledCalendars = $state<Record<string, boolean>>({})
-  let expandedSections = $state<Record<string, boolean>>({ 'shared': true })
+  let expandedSections = $state<Record<string, boolean>>({ 'shared': true, 'accounts_root': true })
 
   // Dialog state
   let showDetails = $state(false)
@@ -277,11 +277,20 @@
             <div class="space-y-4">
               {#each Object.entries(sharedCalendars()) as [canonicalId, shared]}
                 <div class="space-y-1">
-                  <div class="px-3 py-1 flex items-center justify-between">
-                    <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{shared.name}</span>
+                  <div class="px-2 py-1 flex items-center justify-between group">
+                    <button 
+                      class="flex-1 flex items-center gap-2 text-left"
+                      onclick={() => toggleSection(canonicalId)}
+                    >
+                      <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex-1">{shared.name}</span>
+                      <Icon 
+                        icon="mdi:chevron-down" 
+                        class="w-3 h-3 text-muted-foreground transition-transform {expandedSections[canonicalId] !== false ? '' : '-rotate-90'}" 
+                      />
+                    </button>
                     <button
-                      class="p-0.5 rounded hover:bg-background/80 transition-colors"
-                      onclick={() => toggleSharedCalendar(canonicalId, shared.instances)}
+                      class="ml-2 p-1 rounded hover:bg-background/80 transition-colors"
+                      onclick={(e) => { e.stopPropagation(); toggleSharedCalendar(canonicalId, shared.instances) }}
                     >
                       <div 
                         class="w-3 h-3 rounded-sm border flex items-center justify-center transition-colors"
@@ -293,96 +302,114 @@
                       </div>
                     </button>
                   </div>
-                  {#each shared.instances as inst}
-                    {@const acc = accountStore.accounts.find(a => a.account.id === inst.accountId)}
-                    <button
-                      class="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-background/80 group"
-                      onclick={() => toggleCalendar(inst.id)}
-                    >
-                      <div 
-                        class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
-                        style="background-color: {enabledCalendars[inst.id] ? inst.color : 'transparent'}; border-color: {inst.color}"
-                      >
-                        {#if enabledCalendars[inst.id]}
-                          <Icon icon="mdi:check" class="w-3 h-3 text-white" />
-                        {/if}
-                      </div>
-                      <div class="flex-1 min-w-0 flex items-center gap-2">
-                        <div 
-                          class="w-2 h-2 rounded-full flex-shrink-0" 
-                          style="background-color: {acc?.account?.color || '#ccc'}"
-                        ></div>
-                        <span class="text-sm truncate text-left {enabledCalendars[inst.id] ? 'text-foreground font-medium' : 'text-muted-foreground'}">
-                          {acc?.account?.name || inst.accountId}
-                        </span>
-                      </div>
-                    </button>
-                  {/each}
+                  {#if expandedSections[canonicalId] !== false}
+                    <div class="space-y-1">
+                      {#each shared.instances as inst}
+                        {@const acc = accountStore.accounts.find(a => a.account.id === inst.accountId)}
+                        <button
+                          class="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-background/80 group"
+                          onclick={() => toggleCalendar(inst.id)}
+                        >
+                          <div 
+                            class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                            style="background-color: {enabledCalendars[inst.id] ? inst.color : 'transparent'}; border-color: {inst.color}"
+                          >
+                            {#if enabledCalendars[inst.id]}
+                              <Icon icon="mdi:check" class="w-3 h-3 text-white" />
+                            {/if}
+                          </div>
+                          <div class="flex-1 min-w-0 flex items-center gap-2">
+                            <div 
+                              class="w-2 h-2 rounded-full flex-shrink-0" 
+                              style="background-color: {acc?.account?.color || '#ccc'}"
+                            ></div>
+                            <span class="text-sm truncate text-left {enabledCalendars[inst.id] ? 'text-foreground font-medium' : 'text-muted-foreground'}">
+                              {acc?.account?.name || inst.accountId}
+                            </span>
+                          </div>
+                        </button>
+                      {/each}
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>
           {/if}
         </div>
+        <div class="border-b border-border mx-3 my-1"></div>
       {/if}
 
-      <div class="space-y-4">
-        <h2 class="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2">
-          {$_('settings.accounts')}
-        </h2>
+      <div class="space-y-2">
+        <button 
+          class="w-full flex items-center justify-between px-2 py-1 group"
+          onclick={() => toggleSection('accounts_root')}
+        >
+          <h2 class="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            {$_('settings.accounts')}
+          </h2>
+          <Icon 
+            icon="mdi:chevron-down" 
+            class="w-4 h-4 text-muted-foreground transition-transform {expandedSections['accounts_root'] ? '' : '-rotate-90'}" 
+          />
+        </button>
         
-        {#each Object.entries(groupedCalendars()) as [accId, group]}
-          <div class="space-y-2">
-            <div class="flex items-center justify-between px-2 py-1 group">
-              <button 
-                class="flex-1 flex items-center gap-2"
-                onclick={() => toggleSection(accId)}
-              >
-                <div class="w-2 h-2 rounded-full" style="background-color: {group.account?.color || '#ccc'}"></div>
-                <span class="text-xs font-semibold truncate text-muted-foreground flex-1 text-left">{group.account?.name || accId}</span>
-                <Icon 
-                  icon="mdi:chevron-down" 
-                  class="w-3 h-3 text-muted-foreground transition-transform {expandedSections[accId] ? '' : '-rotate-90'}" 
-                />
-              </button>
-              <button
-                class="ml-2 p-1 rounded hover:bg-background/80 transition-colors"
-                onclick={(e) => { e.stopPropagation(); toggleAccountCalendars(group.calendars) }}
-              >
-                <div 
-                  class="w-3 h-3 rounded-sm border flex items-center justify-center transition-colors"
-                  style="background-color: {group.calendars.every(inst => enabledCalendars[inst.id]) ? (group.account?.color || 'var(--primary)') : 'transparent'}; border-color: {group.account?.color || 'var(--primary)'}"
-                >
-                  {#if group.calendars.every(inst => enabledCalendars[inst.id])}
-                    <Icon icon="mdi:check" class="w-2 h-2 text-white" />
-                  {/if}
-                </div>
-              </button>
-            </div>
-            
-            {#if expandedSections[accId]}
-              <div class="space-y-1">
-                {#each group.calendars as cal}
+        {#if expandedSections['accounts_root']}
+          <div class="space-y-4">
+            {#each Object.entries(groupedCalendars()) as [accId, group]}
+              <div class="space-y-2">
+                <div class="flex items-center justify-between px-2 py-1 group">
+                  <button 
+                    class="flex-1 flex items-center gap-2"
+                    onclick={() => toggleSection(accId)}
+                  >
+                    <div class="w-2 h-2 rounded-full" style="background-color: {group.account?.color || '#ccc'}"></div>
+                    <span class="text-xs font-semibold truncate text-muted-foreground flex-1 text-left">{group.account?.name || accId}</span>
+                    <Icon 
+                      icon="mdi:chevron-down" 
+                      class="w-3 h-3 text-muted-foreground transition-transform {expandedSections[accId] ? '' : '-rotate-90'}" 
+                    />
+                  </button>
                   <button
-                    class="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-background/80 group"
-                    onclick={() => toggleCalendar(cal.id)}
+                    class="ml-2 p-1 rounded hover:bg-background/80 transition-colors"
+                    onclick={(e) => { e.stopPropagation(); toggleAccountCalendars(group.calendars) }}
                   >
                     <div 
-                      class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
-                      style="background-color: {enabledCalendars[cal.id] ? cal.color : 'transparent'}; border-color: {cal.color}"
+                      class="w-3 h-3 rounded-sm border flex items-center justify-center transition-colors"
+                      style="background-color: {group.calendars.every(inst => enabledCalendars[inst.id]) ? (group.account?.color || 'var(--primary)') : 'transparent'}; border-color: {group.account?.color || 'var(--primary)'}"
                     >
-                      {#if enabledCalendars[cal.id]}
-                        <Icon icon="mdi:check" class="w-3 h-3 text-white" />
+                      {#if group.calendars.every(inst => enabledCalendars[inst.id])}
+                        <Icon icon="mdi:check" class="w-2 h-2 text-white" />
                       {/if}
                     </div>
-                    <span class="text-sm truncate flex-1 text-left {enabledCalendars[cal.id] ? 'text-foreground font-medium' : 'text-muted-foreground'}">
-                      {cal.name}
-                    </span>
                   </button>
-                {/each}
+                </div>
+                
+                {#if expandedSections[accId]}
+                  <div class="space-y-1">
+                    {#each group.calendars as cal}
+                      <button
+                        class="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-background/80 group"
+                        onclick={() => toggleCalendar(cal.id)}
+                      >
+                        <div 
+                          class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                          style="background-color: {enabledCalendars[cal.id] ? cal.color : 'transparent'}; border-color: {cal.color}"
+                        >
+                          {#if enabledCalendars[cal.id]}
+                            <Icon icon="mdi:check" class="w-3 h-3 text-white" />
+                          {/if}
+                        </div>
+                        <span class="text-sm truncate flex-1 text-left {enabledCalendars[cal.id] ? 'text-foreground font-medium' : 'text-muted-foreground'}">
+                          {cal.name}
+                        </span>
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
               </div>
-            {/if}
+            {/each}
           </div>
-        {/each}
+        {/if}
       </div>
     </aside>
 
