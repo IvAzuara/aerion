@@ -970,8 +970,8 @@ export function UpdateAccount(arg1, arg2) {
   return window['go']['app']['App']['UpdateAccount'](arg1, arg2);
 }
 
-export function UpdateCalendarEvent(arg1) {
-  return window['go']['app']['App']['UpdateCalendarEvent'](arg1);
+export function UpdateCalendarEvent(arg1, arg2) {
+  return window['go']['app']['App']['UpdateCalendarEvent'](arg1, arg2);
 }
 
 export function UpdateContactSource(arg1, arg2) {
@@ -986,6 +986,6 @@ export function UpdateLocalFlags(arg1, arg2, arg3) {
   return window['go']['app']['App']['UpdateLocalFlags'](arg1, arg2, arg3);
 }
 
-export function UpsertCalendarEvent(arg1) {
-  return window['go']['app']['App']['UpsertCalendarEvent'](arg1);
+export function UpsertCalendarEvent(arg1, arg2) {
+  return window['go']['app']['App']['UpsertCalendarEvent'](arg1, arg2);
 }

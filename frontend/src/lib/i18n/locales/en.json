@@ -1059,6 +1059,13 @@
     "saveEvent": "Save Event",
     "deleteEvent": "Delete Event",
     "shared": "Synced",
-    "toggleAll": "Toggle all"
+    "toggleAll": "Toggle all",
+    "start": "Start",
+    "end": "End",
+    "videoCall": "Video call",
+    "join": "Join",
+    "addMeet": "Add Google Meet",
+    "meetDescription": "Generate a link for this event",
+    "noSubject": "(No subject)"
   }
 }

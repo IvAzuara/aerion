@@ -122,11 +122,21 @@ func (c *GoogleCalendarClient) ListEvents(accessToken, calendarID string, timeMi
 }
 
 // CreateEvent creates a new event in Google Calendar
-func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event *Event) (*Event, error) {
+func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event *Event, createMeetLink bool) (*Event, error) {
 	ge := fromModel(event)
+	if createMeetLink {
+		ge.ConferenceData = &googleConferenceData{
+			CreateRequest: &googleCreateRequest{
+				RequestId: fmt.Sprintf("%d", time.Now().UnixNano()),
+				ConferenceSolutionKey: struct {
+					Type string `json:"type"`
+				}{Type: "hangoutsMeet"},
+			},
+		}
+	}
 	body, _ := json.Marshal(ge)
 
-	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events", url.PathEscape(calendarID))
+	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events?conferenceDataVersion=1", url.PathEscape(calendarID))
 	req, err := http.NewRequest("POST", u, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -154,11 +164,21 @@ func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event
 }
 
 // UpdateEvent updates an existing event in Google Calendar using PATCH
-func (c *GoogleCalendarClient) UpdateEvent(accessToken, calendarID, remoteID string, event *Event) (*Event, error) {
+func (c *GoogleCalendarClient) UpdateEvent(accessToken, calendarID, remoteID string, event *Event, createMeetLink bool) (*Event, error) {
 	ge := fromModel(event)
+	if createMeetLink {
+		ge.ConferenceData = &googleConferenceData{
+			CreateRequest: &googleCreateRequest{
+				RequestId: fmt.Sprintf("%d", time.Now().UnixNano()),
+				ConferenceSolutionKey: struct {
+					Type string `json:"type"`
+				}{Type: "hangoutsMeet"},
+			},
+		}
+	}
 	body, _ := json.Marshal(ge)
 
-	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events/%s", url.PathEscape(calendarID), url.PathEscape(remoteID))
+	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events/%s?conferenceDataVersion=1", url.PathEscape(calendarID), url.PathEscape(remoteID))
 	req, err := http.NewRequest("PATCH", u, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -210,11 +230,12 @@ func (c *GoogleCalendarClient) DeleteEvent(accessToken, calendarID, remoteID str
 // googleEvent internal structures for API mapping
 
 type googleEvent struct {
-	ID          string `json:"id,omitempty"`
-	Summary     string `json:"summary,omitempty"`
-	Description string `json:"description,omitempty"`
-	Location    string `json:"location,omitempty"`
-	Start       struct {
+	ID             string                  `json:"id,omitempty"`
+	Summary        string                  `json:"summary,omitempty"`
+	Description    string                  `json:"description,omitempty"`
+	Location       string                  `json:"location,omitempty"`
+	ConferenceData *googleConferenceData   `json:"conferenceData,omitempty"`
+	Start          struct {
 		DateTime string `json:"dateTime,omitempty"`
 		Date     string `json:"date,omitempty"`
 	} `json:"start"`
@@ -232,14 +253,40 @@ type googleEvent struct {
 	} `json:"attendees,omitempty"`
 }
 
+type googleConferenceData struct {
+	CreateRequest *googleCreateRequest `json:"createRequest,omitempty"`
+	EntryPoints   []struct {
+		EntryPointType string `json:"entryPointType"`
+		Uri            string `json:"uri"`
+		Label          string `json:"label"`
+	} `json:"entryPoints,omitempty"`
+}
+
+type googleCreateRequest struct {
+	RequestId             string `json:"requestId"`
+	ConferenceSolutionKey struct {
+		Type string `json:"type"`
+	} `json:"conferenceSolutionKey"`
+}
+
 func (ge googleEvent) toModel(calendarID string) *Event {
+	meetLink := ge.HangoutLink
+	if meetLink == "" && ge.ConferenceData != nil {
+		for _, ep := range ge.ConferenceData.EntryPoints {
+			if ep.EntryPointType == "video" {
+				meetLink = ep.Uri
+				break
+			}
+		}
+	}
+
 	e := &Event{
 		RemoteID:    ge.ID,
 		CalendarID:  calendarID,
 		Summary:     ge.Summary,
 		Description: ge.Description,
 		Location:    ge.Location,
-		MeetLink:    ge.HangoutLink,
+		MeetLink:    meetLink,
 		Status:      ge.Status,
 	}
 

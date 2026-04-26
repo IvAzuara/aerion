@@ -502,7 +502,7 @@ export function UnsubscribeFolder(arg1:string,arg2:string):Promise<void>;
 
 export function UpdateAccount(arg1:string,arg2:account.AccountConfig):Promise<account.Account>;
 
-export function UpdateCalendarEvent(arg1:calendar.Event):Promise<calendar.Event>;
+export function UpdateCalendarEvent(arg1:calendar.Event,arg2:boolean):Promise<calendar.Event>;
 
 export function UpdateContactSource(arg1:string,arg2:carddav.SourceConfig):Promise<void>;
 
@@ -510,4 +510,4 @@ export function UpdateIdentity(arg1:string,arg2:account.IdentityConfig):Promise<
 
 export function UpdateLocalFlags(arg1:Array<string>,arg2:any,arg3:any):Promise<void>;
 
-export function UpsertCalendarEvent(arg1:calendar.Event):Promise<calendar.Event>;
+export function UpsertCalendarEvent(arg1:calendar.Event,arg2:boolean):Promise<calendar.Event>;

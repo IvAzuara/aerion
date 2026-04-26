@@ -61,11 +61,11 @@ func (a *App) GetCalendarEvents(calendarID string, startStr, endStr string) ([]*
 }
 
 // UpsertCalendarEvent creates or updates a calendar event
-func (a *App) UpsertCalendarEvent(event calendar.Event) (*calendar.Event, error) {
+func (a *App) UpsertCalendarEvent(event calendar.Event, createMeetLink bool) (*calendar.Event, error) {
 	log := logging.WithComponent("app")
 
 	if event.RemoteID != "" {
-		return a.UpdateCalendarEvent(event)
+		return a.UpdateCalendarEvent(event, createMeetLink)
 	}
 
 	// If it's a Google event, we should ideally sync it to Google too
@@ -80,7 +80,7 @@ func (a *App) UpsertCalendarEvent(event calendar.Event) (*calendar.Event, error)
 			return nil, fmt.Errorf("failed to get oauth token: %w", err)
 		}
 
-		created, err := a.calendarClient.CreateEvent(accessToken.AccessToken, cal.ID, &event)
+		created, err := a.calendarClient.CreateEvent(accessToken.AccessToken, cal.ID, &event, createMeetLink)
 		if err != nil {
 			return nil, fmt.Errorf("google api error: %w", err)
 		}
@@ -96,7 +96,7 @@ func (a *App) UpsertCalendarEvent(event calendar.Event) (*calendar.Event, error)
 }
 
 // UpdateCalendarEvent updates an existing calendar event
-func (a *App) UpdateCalendarEvent(event calendar.Event) (*calendar.Event, error) {
+func (a *App) UpdateCalendarEvent(event calendar.Event, createMeetLink bool) (*calendar.Event, error) {
 	log := logging.WithComponent("app")
 
 	cal, err := a.calendarStore.GetCalendar(event.CalendarID)
@@ -110,7 +110,7 @@ func (a *App) UpdateCalendarEvent(event calendar.Event) (*calendar.Event, error)
 			return nil, fmt.Errorf("failed to get oauth token: %w", err)
 		}
 
-		updated, err := a.calendarClient.UpdateEvent(accessToken.AccessToken, cal.ID, event.RemoteID, &event)
+		updated, err := a.calendarClient.UpdateEvent(accessToken.AccessToken, cal.ID, event.RemoteID, &event, createMeetLink)
 		if err != nil {
 			return nil, fmt.Errorf("google api error: %w", err)
 		}
