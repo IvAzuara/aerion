@@ -29,6 +29,7 @@
     differenceInMinutes
   } from 'date-fns'
   import { generateTimeOptions } from '$lib/utils/time'
+  import { ThreeOptionDialog } from '$lib/components/ui/confirm-dialog'
   // @ts-ignore - wailsjs
   import { UpsertCalendarEvent } from '../../../../wailsjs/go/app/App'
   // @ts-ignore - wailsjs models
@@ -60,11 +61,36 @@
   let endDate = $state(format(new Date(), 'yyyy-MM-dd'))
   let endTime = $state(format(new Date(), 'HH:mm'))
   let isAllDay = $state(false)
+  let recurrence = $state('')
   let calendarId = $state('')
   let createMeetLink = $state(false)
   let saving = $state(false)
+  let attendees = $state<string[]>([])
+  let newAttendee = $state('')
+  let showInviteConfirm = $state(false)
 
   const allTimeOptions = generateTimeOptions()
+
+  // Recurrence options
+  const getRecurrenceOptions = () => {
+    const start = parseISO(`${startDate}T${startTime}`)
+    const dayName = format(start, 'EEEE')
+    const dayShort = format(start, 'EEEEEE').toUpperCase()
+    const monthDay = format(start, 'd')
+    const ordinal = Math.ceil(parseInt(monthDay) / 7)
+    const ordinalName = ['first', 'second', 'third', 'fourth', 'fifth'][ordinal - 1]
+
+    return [
+      { label: $_('calendar.recurrence.none') || 'Does not repeat', value: '' },
+      { label: $_('calendar.recurrence.daily') || 'Daily', value: 'RRULE:FREQ=DAILY' },
+      { label: ($_('calendar.recurrence.weekly') || 'Weekly on ') + dayName, value: `RRULE:FREQ=WEEKLY;BYDAY=${dayShort}` },
+      { label: ($_('calendar.recurrence.monthly') || 'Monthly on the ') + ordinalName + ' ' + dayName, value: `RRULE:FREQ=MONTHLY;BYDAY=${ordinal}${dayShort}` },
+      { label: ($_('calendar.recurrence.annually') || 'Annually on ') + format(start, 'MMMM d'), value: `RRULE:FREQ=YEARLY` },
+      { label: $_('calendar.recurrence.weekdays') || 'Every weekday (Monday to Friday)', value: 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR' },
+    ]
+  }
+
+  const recurrenceOptions = $derived(getRecurrenceOptions())
 
   // Derived options for end time to only show times after start time if on same day
   const endTimeOptions = $derived.by(() => {
@@ -123,7 +149,6 @@
   function selectDate(date: Date, type: 'start' | 'end') {
     if (type === 'start') {
       const oldStart = parseISO(startDate)
-      const diff = differenceInMinutes(parseISO(endDate), oldStart)
       
       startDate = format(date, 'yyyy-MM-dd')
       
@@ -150,7 +175,9 @@
         location = event.location || ''
         isAllDay = event.isAllDay
         calendarId = event.calendarId
+        recurrence = event.recurrence || ''
         createMeetLink = false
+        attendees = event.attendees?.map((a: any) => a.email) || []
         
         const start = new Date(event.startTime)
         const end = new Date(event.endTime)
@@ -167,6 +194,8 @@
         description = ''
         location = ''
         isAllDay = false
+        recurrence = ''
+        attendees = []
         
         // Default to first enabled calendar that is also writable
         const defaultCal = writableCalendars.find(c => c.enabled) || writableCalendars[0]
@@ -186,11 +215,32 @@
     }
   })
 
+  function addAttendee() {
+    if (newAttendee && !attendees.includes(newAttendee)) {
+      attendees = [...attendees, newAttendee]
+      newAttendee = ''
+    }
+  }
+
+  function removeAttendee(email: string) {
+    attendees = attendees.filter(a => a !== email)
+  }
+
   async function handleSave() {
     if (!summary || !calendarId) {
       return
     }
+
+    const selectedCal = calendars.find(c => c.id === calendarId)
+    if (selectedCal?.type === 'google' && attendees.length > 0) {
+      showInviteConfirm = true
+      return
+    }
     
+    await doSave(false)
+  }
+
+  async function doSave(sendInvitations: boolean) {
     saving = true
     try {
       const start = parseISO(`${startDate}T${isAllDay ? '00:00' : startTime}`)
@@ -205,17 +255,20 @@
         startTime: start.toISOString(),
         endTime: end.toISOString(),
         isAllDay,
+        recurrence,
         status: 'confirmed',
+        attendees: attendees.map(email => ({ email })),
       })
 
       // @ts-ignore - wailsjs bindings update sync
-      await UpsertCalendarEvent(newEvent, createMeetLink)
+      await UpsertCalendarEvent(newEvent, createMeetLink, sendInvitations)
       open = false
       onSave?.()
     } catch (err) {
       console.error('Failed to save event:', err)
     } finally {
       saving = false
+      showInviteConfirm = false
     }
   }
 
@@ -223,7 +276,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={(isOpen) => !isOpen && onClose?.()}>
-  <Dialog.Content class="sm:max-w-[425px]">
+  <Dialog.Content class="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
     <Dialog.Header>
       <Dialog.Title>{event ? $_('calendar.editEvent') : $_('calendar.newEvent')}</Dialog.Title>
     </Dialog.Header>
@@ -342,20 +395,40 @@
         </div>
       </div>
 
-      <button 
-        type="button"
-        class="flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 group/allday {isAllDay ? 'bg-primary/5 border-primary/30' : 'bg-muted/20 hover:bg-muted/30 border-transparent'}"
-        onclick={() => isAllDay = !isAllDay}
-      >
-        <div class="flex items-center justify-center w-5 h-5 rounded border transition-all duration-200 {isAllDay ? 'bg-primary border-primary' : 'border-muted-foreground/30'}">
-          {#if isAllDay}
-            <Icon icon="mdi:check" class="w-3.5 h-3.5 text-white" />
-          {/if}
+      <div class="flex items-center gap-4">
+        <button 
+          type="button"
+          class="flex items-center gap-3 p-3 flex-1 rounded-xl border transition-all duration-200 group/allday {isAllDay ? 'bg-primary/5 border-primary/30' : 'bg-muted/20 hover:bg-muted/30 border-transparent'}"
+          onclick={() => isAllDay = !isAllDay}
+        >
+          <div class="flex items-center justify-center w-5 h-5 rounded border transition-all duration-200 {isAllDay ? 'bg-primary border-primary' : 'border-muted-foreground/30'}">
+            {#if isAllDay}
+              <Icon icon="mdi:check" class="w-3.5 h-3.5 text-white" />
+            {/if}
+          </div>
+          <span class="text-sm font-medium transition-colors {isAllDay ? 'text-foreground' : 'text-muted-foreground'}">
+            {$_('calendar.allDay')}
+          </span>
+        </button>
+
+        <div class="flex-1">
+          <Select.Root bind:value={recurrence}>
+            <Select.Trigger class="w-full">
+              <div class="flex items-center gap-2">
+                <Icon icon="mdi:repeat" class="w-4 h-4 opacity-50" />
+                <span>{recurrenceOptions.find(o => o.value === recurrence)?.label || recurrenceOptions[0].label}</span>
+              </div>
+            </Select.Trigger>
+            <Select.Content>
+              {#each recurrenceOptions as opt}
+                <Select.Item value={opt.value} label={opt.label}>
+                  {opt.label}
+                </Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
         </div>
-        <span class="text-sm font-medium transition-colors {isAllDay ? 'text-foreground' : 'text-muted-foreground'}">
-          {$_('calendar.allDay')}
-        </span>
-      </button>
+      </div>
 
       <div class="grid gap-2">
         <Label for="calendar">{$_('calendar.calendar')}</Label>
@@ -444,12 +517,38 @@
       </div>
 
       <div class="grid gap-2">
+        <Label>{$_('calendar.guests') || 'Guests'}</Label>
+        <div class="flex gap-2">
+          <Input 
+            placeholder="Add guest email" 
+            bind:value={newAttendee} 
+            onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addAttendee())}
+          />
+          <Button variant="outline" size="icon" onclick={addAttendee}>
+            <Icon icon="mdi:plus" class="w-4 h-4" />
+          </Button>
+        </div>
+        {#if attendees.length > 0}
+          <div class="flex flex-wrap gap-2 mt-2">
+            {#each attendees as email}
+              <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-secondary text-secondary-foreground text-xs">
+                <span>{email}</span>
+                <button onclick={() => removeAttendee(email)} class="hover:text-destructive">
+                  <Icon icon="mdi:close" class="w-3 h-3" />
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <div class="grid gap-2">
         <Label for="description">{$_('calendar.description')}</Label>
         <textarea
           id="description"
           bind:value={description}
-          class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Add description"
+          class="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
         ></textarea>
       </div>
     </div>
@@ -465,3 +564,18 @@
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
+
+<ThreeOptionDialog
+  bind:open={showInviteConfirm}
+  title={$_('calendar.sendInvitesTitle') || '¿Quieres enviar invitaciones por correo electrónico a los invitados de Calendario de Google?'}
+  option1Label={$_('calendar.sendInvites') || 'Enviar'}
+  option2Label={$_('calendar.dontSendInvites') || 'No enviar'}
+  option3Label={$_('calendar.backToEdit') || 'Regresar'}
+  option1Variant="default"
+  option2Variant="default"
+  loading={saving ? (showInviteConfirm ? 'option1' : null) : null}
+  onOption1={() => doSave(true)}
+  onOption2={() => doSave(false)}
+  onOption3={() => { showInviteConfirm = false }}
+/>
+

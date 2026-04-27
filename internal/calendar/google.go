@@ -122,7 +122,7 @@ func (c *GoogleCalendarClient) ListEvents(accessToken, calendarID string, timeMi
 }
 
 // CreateEvent creates a new event in Google Calendar
-func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event *Event, createMeetLink bool) (*Event, error) {
+func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event *Event, createMeetLink bool, sendInvitations bool) (*Event, error) {
 	ge := fromModel(event)
 	if createMeetLink {
 		ge.ConferenceData = &googleConferenceData{
@@ -136,7 +136,12 @@ func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event
 	}
 	body, _ := json.Marshal(ge)
 
-	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events?conferenceDataVersion=1", url.PathEscape(calendarID))
+	sendUpdates := "none"
+	if sendInvitations {
+		sendUpdates = "all"
+	}
+
+	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events?conferenceDataVersion=1&sendUpdates=%s", url.PathEscape(calendarID), sendUpdates)
 	req, err := http.NewRequest("POST", u, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -164,7 +169,7 @@ func (c *GoogleCalendarClient) CreateEvent(accessToken, calendarID string, event
 }
 
 // UpdateEvent updates an existing event in Google Calendar using PATCH
-func (c *GoogleCalendarClient) UpdateEvent(accessToken, calendarID, remoteID string, event *Event, createMeetLink bool) (*Event, error) {
+func (c *GoogleCalendarClient) UpdateEvent(accessToken, calendarID, remoteID string, event *Event, createMeetLink bool, sendInvitations bool) (*Event, error) {
 	ge := fromModel(event)
 	if createMeetLink {
 		ge.ConferenceData = &googleConferenceData{
@@ -178,7 +183,12 @@ func (c *GoogleCalendarClient) UpdateEvent(accessToken, calendarID, remoteID str
 	}
 	body, _ := json.Marshal(ge)
 
-	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events/%s?conferenceDataVersion=1", url.PathEscape(calendarID), url.PathEscape(remoteID))
+	sendUpdates := "none"
+	if sendInvitations {
+		sendUpdates = "all"
+	}
+
+	u := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events/%s?conferenceDataVersion=1&sendUpdates=%s", url.PathEscape(calendarID), url.PathEscape(remoteID), sendUpdates)
 	req, err := http.NewRequest("PATCH", u, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -243,8 +253,9 @@ type googleEvent struct {
 		DateTime string `json:"dateTime,omitempty"`
 		Date     string `json:"date,omitempty"`
 	} `json:"end"`
-	HangoutLink string `json:"hangoutLink,omitempty"`
-	Status      string `json:"status,omitempty"`
+	HangoutLink string   `json:"hangoutLink,omitempty"`
+	Status      string   `json:"status,omitempty"`
+	Recurrence  []string `json:"recurrence,omitempty"`
 	Attendees   []struct {
 		Email       string `json:"email"`
 		DisplayName string `json:"displayName,omitempty"`
@@ -290,6 +301,10 @@ func (ge googleEvent) toModel(calendarID string) *Event {
 		Status:      ge.Status,
 	}
 
+	if len(ge.Recurrence) > 0 {
+		e.Recurrence = ge.Recurrence[0]
+	}
+
 	if ge.Start.DateTime != "" {
 		e.StartTime, _ = time.Parse(time.RFC3339, ge.Start.DateTime)
 		e.EndTime, _ = time.Parse(time.RFC3339, ge.End.DateTime)
@@ -320,6 +335,10 @@ func fromModel(e *Event) googleEvent {
 		Status:      e.Status,
 	}
 
+	if e.Recurrence != "" {
+		ge.Recurrence = []string{e.Recurrence}
+	}
+
 	if e.IsAllDay {
 		ge.Start.Date = e.StartTime.Format("2006-01-02")
 		ge.End.Date = e.EndTime.Format("2006-01-02")
@@ -344,3 +363,4 @@ func fromModel(e *Event) googleEvent {
 
 	return ge
 }
+

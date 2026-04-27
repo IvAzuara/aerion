@@ -65,10 +65,7 @@
     bold: false,
     italic: false,
     underline: false,
-    strike: false,
     bulletList: false,
-    orderedList: false,
-    blockquote: false,
     link: false,
   })
 
@@ -77,7 +74,6 @@
   let showColorPicker = $state(false)
   let currentFontSize = $state<string>('')
   let showFontSizePicker = $state(false)
-  let currentAlign = $state<'left' | 'center' | 'right'>('left')
 
   // Preset colors
   const presetColors = [
@@ -98,10 +94,7 @@
       bold: editor.isActive('bold'),
       italic: editor.isActive('italic'),
       underline: editor.isActive('underline'),
-      strike: editor.isActive('strike'),
       bulletList: editor.isActive('bulletList'),
-      orderedList: editor.isActive('orderedList'),
-      blockquote: editor.isActive('blockquote'),
       link: editor.isActive('link'),
     }
 
@@ -112,15 +105,6 @@
     // Get current font size
     const fontSizeAttr = editor.getAttributes('textStyle').fontSize
     currentFontSize = fontSizeAttr || ''
-
-    // Get current alignment
-    if (editor.isActive({ textAlign: 'center' })) {
-      currentAlign = 'center'
-    } else if (editor.isActive({ textAlign: 'right' })) {
-      currentAlign = 'right'
-    } else {
-      currentAlign = 'left'
-    }
   }
 
   // Subscribe to editor transactions to update button states
@@ -156,20 +140,8 @@
     editor?.chain().focus().toggleUnderline().run()
   }
 
-  function toggleStrike() {
-    editor?.chain().focus().toggleStrike().run()
-  }
-
   function toggleBulletList() {
     editor?.chain().focus().toggleBulletList().run()
-  }
-
-  function toggleOrderedList() {
-    editor?.chain().focus().toggleOrderedList().run()
-  }
-
-  function toggleBlockquote() {
-    editor?.chain().focus().toggleBlockquote().run()
   }
 
   function insertLink() {
@@ -211,11 +183,6 @@
     showColorPicker = false
   }
 
-  // Alignment functions
-  function setAlign(align: 'left' | 'center' | 'right') {
-    editor?.chain().focus().setTextAlign(align).run()
-  }
-
   // Close pickers when clicking outside
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement
@@ -233,7 +200,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div
   bind:this={toolbarRef}
-  class="flex items-center gap-1 px-4 py-2 border-b border-border relative"
+  class="flex items-center flex-wrap gap-1 px-4 py-2 border-b border-border relative"
   role="toolbar"
   aria-label={$_('aria.textFormatting')}
   tabindex="-1"
@@ -292,22 +259,6 @@
       <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">3</span>
     {/if}
   </div>
-  <div class="relative">
-    <button
-      onclick={toggleStrike}
-      class="p-1.5 rounded hover:bg-muted transition-colors"
-      class:bg-muted={activeStates.strike}
-      class:opacity-50={isPlainTextMode}
-      disabled={isPlainTextMode}
-      tabindex="-1"
-      title={$_('editor.strikethrough')}
-    >
-      <Icon icon="mdi:format-strikethrough" class="w-5 h-5" />
-    </button>
-    {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">4</span>
-    {/if}
-  </div>
 
   <div class="w-px h-5 bg-border mx-1"></div>
 
@@ -329,7 +280,7 @@
       ></div>
     </button>
     {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">5</span>
+      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">4</span>
     {/if}
 
     {#if showColorPicker && !isPlainTextMode}
@@ -377,7 +328,7 @@
       {currentFontSize || '14px'}
     </button>
     {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">6</span>
+      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">5</span>
     {/if}
 
     {#if showFontSizePicker && !isPlainTextMode}
@@ -397,58 +348,6 @@
 
   <div class="w-px h-5 bg-border mx-1"></div>
 
-  <!-- Alignment buttons -->
-  <div class="relative">
-    <button
-      onclick={() => setAlign('left')}
-      class="p-1.5 rounded hover:bg-muted transition-colors"
-      class:bg-muted={currentAlign === 'left'}
-      class:opacity-50={isPlainTextMode}
-      disabled={isPlainTextMode}
-      tabindex="-1"
-      title={$_('editor.alignLeft')}
-    >
-      <Icon icon="mdi:format-align-left" class="w-5 h-5" />
-    </button>
-    {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">7</span>
-    {/if}
-  </div>
-  <div class="relative">
-    <button
-      onclick={() => setAlign('center')}
-      class="p-1.5 rounded hover:bg-muted transition-colors"
-      class:bg-muted={currentAlign === 'center'}
-      class:opacity-50={isPlainTextMode}
-      disabled={isPlainTextMode}
-      tabindex="-1"
-      title={$_('editor.alignCenter')}
-    >
-      <Icon icon="mdi:format-align-center" class="w-5 h-5" />
-    </button>
-    {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">8</span>
-    {/if}
-  </div>
-  <div class="relative">
-    <button
-      onclick={() => setAlign('right')}
-      class="p-1.5 rounded hover:bg-muted transition-colors"
-      class:bg-muted={currentAlign === 'right'}
-      class:opacity-50={isPlainTextMode}
-      disabled={isPlainTextMode}
-      tabindex="-1"
-      title={$_('editor.alignRight')}
-    >
-      <Icon icon="mdi:format-align-right" class="w-5 h-5" />
-    </button>
-    {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">9</span>
-    {/if}
-  </div>
-
-  <div class="w-px h-5 bg-border mx-1"></div>
-
   <div class="relative">
     <button
       onclick={toggleBulletList}
@@ -462,40 +361,7 @@
       <Icon icon="mdi:format-list-bulleted" class="w-5 h-5" />
     </button>
     {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">a</span>
-    {/if}
-  </div>
-  <div class="relative">
-    <button
-      onclick={toggleOrderedList}
-      class="p-1.5 rounded hover:bg-muted transition-colors"
-      class:bg-muted={activeStates.orderedList}
-      class:opacity-50={isPlainTextMode}
-      disabled={isPlainTextMode}
-      tabindex="-1"
-      title={$_('editor.numberedList')}
-    >
-      <Icon icon="mdi:format-list-numbered" class="w-5 h-5" />
-    </button>
-    {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">b</span>
-    {/if}
-  </div>
-  <div class="w-px h-5 bg-border mx-1"></div>
-  <div class="relative">
-    <button
-      onclick={toggleBlockquote}
-      class="p-1.5 rounded hover:bg-muted transition-colors"
-      class:bg-muted={activeStates.blockquote}
-      class:opacity-50={isPlainTextMode}
-      disabled={isPlainTextMode}
-      tabindex="-1"
-      title={$_('editor.quote')}
-    >
-      <Icon icon="mdi:format-quote-close" class="w-5 h-5" />
-    </button>
-    {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">c</span>
+      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">6</span>
     {/if}
   </div>
   <div class="relative">
@@ -511,7 +377,7 @@
       <Icon icon="mdi:link" class="w-5 h-5" />
     </button>
     {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">d</span>
+      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">7</span>
     {/if}
   </div>
   <div class="relative">
@@ -526,7 +392,7 @@
       <Icon icon="mdi:image" class="w-5 h-5" />
     </button>
     {#if hintMode && !isPlainTextMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">e</span>
+      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">8</span>
     {/if}
   </div>
 
@@ -546,7 +412,7 @@
       <span class="hidden sm:inline">{isPlainTextMode ? $_('editor.richText') : $_('editor.plainText')}</span>
     </button>
     {#if hintMode}
-      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">f</span>
+      <span class="absolute -top-1 -left-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded z-20">9</span>
     {/if}
   </div>
 </div>

@@ -61,11 +61,11 @@ func (a *App) GetCalendarEvents(calendarID string, startStr, endStr string) ([]*
 }
 
 // UpsertCalendarEvent creates or updates a calendar event
-func (a *App) UpsertCalendarEvent(event calendar.Event, createMeetLink bool) (*calendar.Event, error) {
+func (a *App) UpsertCalendarEvent(event calendar.Event, createMeetLink bool, sendInvitations bool) (*calendar.Event, error) {
 	log := logging.WithComponent("app")
 
 	if event.RemoteID != "" {
-		return a.UpdateCalendarEvent(event, createMeetLink)
+		return a.UpdateCalendarEvent(event, createMeetLink, sendInvitations)
 	}
 
 	// If it's a Google event, we should ideally sync it to Google too
@@ -80,7 +80,7 @@ func (a *App) UpsertCalendarEvent(event calendar.Event, createMeetLink bool) (*c
 			return nil, fmt.Errorf("failed to get oauth token: %w", err)
 		}
 
-		created, err := a.calendarClient.CreateEvent(accessToken.AccessToken, cal.ID, &event, createMeetLink)
+		created, err := a.calendarClient.CreateEvent(accessToken.AccessToken, cal.ID, &event, createMeetLink, sendInvitations)
 		if err != nil {
 			return nil, fmt.Errorf("google api error: %w", err)
 		}
@@ -96,7 +96,7 @@ func (a *App) UpsertCalendarEvent(event calendar.Event, createMeetLink bool) (*c
 }
 
 // UpdateCalendarEvent updates an existing calendar event
-func (a *App) UpdateCalendarEvent(event calendar.Event, createMeetLink bool) (*calendar.Event, error) {
+func (a *App) UpdateCalendarEvent(event calendar.Event, createMeetLink bool, sendInvitations bool) (*calendar.Event, error) {
 	log := logging.WithComponent("app")
 
 	cal, err := a.calendarStore.GetCalendar(event.CalendarID)
@@ -110,7 +110,7 @@ func (a *App) UpdateCalendarEvent(event calendar.Event, createMeetLink bool) (*c
 			return nil, fmt.Errorf("failed to get oauth token: %w", err)
 		}
 
-		updated, err := a.calendarClient.UpdateEvent(accessToken.AccessToken, cal.ID, event.RemoteID, &event, createMeetLink)
+		updated, err := a.calendarClient.UpdateEvent(accessToken.AccessToken, cal.ID, event.RemoteID, &event, createMeetLink, sendInvitations)
 		if err != nil {
 			return nil, fmt.Errorf("google api error: %w", err)
 		}

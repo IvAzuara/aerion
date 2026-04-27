@@ -88,6 +88,7 @@
             </div>
           </div>
         {/if}
+
         
         {#if event.attendees && event.attendees.length > 0}
           <div class="space-y-3">

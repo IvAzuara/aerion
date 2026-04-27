@@ -1066,6 +1066,19 @@
     "join": "Join",
     "addMeet": "Add Google Meet",
     "meetDescription": "Generate a link for this event",
-    "noSubject": "(No subject)"
+    "noSubject": "(No subject)",
+    "guests": "Guests",
+    "recurrence": {
+      "none": "Does not repeat",
+      "daily": "Daily",
+      "weekly": "Weekly on ",
+      "monthly": "Monthly on the ",
+      "annually": "Annually on ",
+      "weekdays": "Every weekday (Monday to Friday)"
+    },
+    "sendInvitesTitle": "Do you want to send invitation emails to Google Calendar guests?",
+    "sendInvites": "Send",
+    "dontSendInvites": "Don't send",
+    "backToEdit": "Back to edit"
   }
 }

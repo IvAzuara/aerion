@@ -1930,16 +1930,21 @@
     {/if}
 
     <!-- Editor -->
-    <div class="flex-1 overflow-auto bg-white dark:bg-zinc-900">
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div
+      class="flex-1 overflow-auto bg-white dark:bg-zinc-900 cursor-text"
+      onclick={() => !isPlainTextMode && editor?.commands.focus()}
+    >
       {#if isPlainTextMode}
         <textarea
           bind:value={plainTextContent}
           placeholder={$_('composer.writePlaceholder')}
           class="w-full h-full p-3 bg-transparent resize-none focus:outline-none font-mono text-sm"
           oninput={scheduleDraftSave}
+          onclick={(e) => e.stopPropagation()}
         ></textarea>
       {:else}
-        <div bind:this={editorElement} class="h-full"></div>
+        <div bind:this={editorElement} class="h-full min-h-[200px]"></div>
       {/if}
     </div>
 
@@ -2078,6 +2083,11 @@
   :global(.composer-editor p) {
     margin: 0;
     line-height: 1.25;
+  }
+
+  :global(.composer-editor) {
+    height: 100%;
+    min-height: 200px;
   }
 
   :global(.ProseMirror p.is-editor-empty:first-child::before) {
