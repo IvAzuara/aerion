@@ -2085,11 +2085,6 @@
     line-height: 1.25;
   }
 
-  :global(.composer-editor) {
-    height: 100%;
-    min-height: 200px;
-  }
-
   :global(.ProseMirror p.is-editor-empty:first-child::before) {
     color: #adb5bd;
     content: attr(data-placeholder);
